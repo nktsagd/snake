@@ -1,0 +1,7 @@
+-c constraints-runtime.txt
+# Runtime versions used to validate the packaged desktop app.
+torch==2.8.0
+numpy==1.26.4
+pygame==2.6.1
+sounddevice==0.5.6
+soundfile==0.13.1

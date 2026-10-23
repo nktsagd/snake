@@ -1,0 +1,16 @@
+{
+  "classes": [
+    "up",
+    "right",
+    "left",
+    "down"
+  ],
+  "sample_rate": 16000,
+  "samples": 16000,
+  "input": "float32 raw mono waveform [-1,1]",
+  "output": "4 logits; softmax over all four outputs",
+  "architecture": "logspec_bigru64_v1",
+  "cpu_threads": 2,
+  "latency_p50_ms": 1.852999999996996,
+  "latency_p95_ms": 1.9465249999896628
+}

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voicesnake-desktop"
+version = "1.0.0"
+description = "Offline four-command GRU voice-controlled Snake"
+readme = "README.md"
+requires-python = ">=3.9,<3.13"
+dependencies = [
+  "torch==2.8.0", "numpy==1.26.4", "pygame==2.6.1",
+  "sounddevice==0.5.6", "soundfile==0.13.1"
+]
+
+[project.scripts]
+voicesnake = "voicesnake.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["voicesnake*"]
+
+[tool.setuptools.package-data]
+voicesnake = ["assets/*.pt", "assets/*.json"]
