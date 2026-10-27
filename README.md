@@ -1,4 +1,4 @@
-# VoiceSnake desktop
+# VoiceSnake desktop cc
 
 Game Snake điều khiển bằng bốn từ tiếng Anh **up, right, left, down**, hoặc bàn phím. Model GRU được train từ đầu và đóng gói sẵn cùng chương trình. Chơi trên CPU, xử lý microphone tại máy; không cần train lại hoặc tải dataset để chơi.
 
