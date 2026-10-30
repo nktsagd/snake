@@ -14,3 +14,7 @@ training_outputs/
 .DS_Store
 
 .slides-build/
+node_modules/
+.next/
+public/ort/
+*.tsbuildinfo
