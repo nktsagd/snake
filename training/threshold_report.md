@@ -13,7 +13,7 @@
 
 Các cột từ lạ là tỷ lệ **bị nhận nhầm thành lệnh**: thấp hơn là tốt hơn. Background: 0/61 clip bị nhận thành lệnh ở mọi ngưỡng trong bảng, trên cả hai split; không thể suy rộng kết luận từ hai nguồn noise này.
 
-Chọn **0,90 làm mặc định thử nghiệm**: trên validation tăng tỷ lệ nhận đúng lệnh 2,4 điểm phần trăm so với 0,919165, đổi lại tỷ lệ nhận nhầm từ chưa thấy tăng từ 5,0% lên 7,19%. Ngưỡng 0,85 nhận thêm lệnh nhưng tỷ lệ nhận nhầm nhóm chưa thấy trên validation tăng lên 11,88%. Test chỉ mang tính tham khảo vì tập này đã được dùng khi so sánh và chọn model; không phải một phép xác nhận hoàn toàn độc lập.
+Ngưỡng **0,90 từng được đề xuất**: trên validation tăng tỷ lệ nhận đúng lệnh 2,4 điểm phần trăm so với 0,919165, đổi lại tỷ lệ nhận nhầm từ chưa thấy tăng từ 5,0% lên 7,19%. Game hiện dùng mặc định **0,70 và một lần xác nhận** theo lựa chọn của người dùng; bảng ở trên là phép đo clip, còn mô phỏng bên dưới dùng hai lần xác nhận. Ngưỡng 0,85 nhận thêm lệnh nhưng tỷ lệ nhận nhầm nhóm chưa thấy trên validation tăng lên 11,88%. Test chỉ mang tính tham khảo vì tập này đã được dùng khi so sánh và chọn model; không phải một phép xác nhận hoàn toàn độc lập.
 
 ## Phát lại cửa sổ trượt
 

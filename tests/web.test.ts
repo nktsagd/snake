@@ -19,12 +19,11 @@ describe("game", () => {
   });
 });
 describe("voice decisions", () => {
-  test("default confidence is 0.90", () => {
+  test("default confidence is 0.70 with one confirmation", () => {
     const d = new Detector();
-    expect(d.threshold).toBe(.9);
-    expect(d.update("up", .899, true, 1000)).toBeNull();
-    expect(d.update("up", .9, true, 1100)).toBeNull();
-    expect(d.update("up", .9, true, 1200)).toBe("up");
+    expect(d.threshold).toBe(.7);
+    expect(d.update("up", .699, true, 1000)).toBeNull();
+    expect(d.update("up", .7, true, 1100)).toBe("up");
   });
   test("requires confidence and repeated direction, rejects unknown and rearms after silence", () => {
     const d = new Detector(.9, 2);

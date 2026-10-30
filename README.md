@@ -13,7 +13,7 @@ bun run dev
 
 Mở địa chỉ localhost được in ra, chọn **Bắt đầu chơi**, sau đó chọn **Bật microphone** và cấp quyền. Nói một trong bốn từ tiếng Anh. Có thể dùng phím mũi tên, WASD hoặc các nút cảm ứng; Space tạm dừng. Micro cần localhost hoặc HTTPS. Model và runtime được tải khi mở trang; âm thanh không được gửi đến server.
 
-Mục **Cài đặt** điều chỉnh ngay tốc độ rắn (2–10 ô/giây), confidence tối thiểu (10–99%), ngưỡng RMS (0,001–0,030), số lần xác nhận (1–4) và thời gian nghỉ giữa hai lệnh (0–1.000 ms). Mặc định lần lượt là 4 ô/giây, 90%, 0,004, 2 và 350 ms; **Đặt lại** khôi phục các giá trị này. Giảm ngưỡng hoặc xác nhận có thể giảm bỏ sót nhưng tăng nhận nhầm. Cài đặt chỉ tồn tại trong phiên trang; không thay đổi trọng số hay cấu trúc model.
+Mục **Cài đặt** điều chỉnh ngay tốc độ rắn (2–10 ô/giây), confidence tối thiểu (10–99%), ngưỡng RMS (0,001–0,030), số lần xác nhận (1–4) và thời gian nghỉ giữa hai lệnh (0–1.000 ms). Mặc định lần lượt là 3 ô/giây, 70%, 0,004, 1 và 350 ms; **Đặt lại** khôi phục các giá trị này. Giảm ngưỡng hoặc xác nhận có thể giảm bỏ sót nhưng tăng nhận nhầm. Cài đặt chỉ tồn tại trong phiên trang; không thay đổi trọng số hay cấu trúc model.
 
 ```bash
 bun test       # kiểm tra luật game, lọc lệnh và ONNX WASM
@@ -25,7 +25,7 @@ bun run start  # chạy build
 
 **DS-CNN vừa**, 21.830 tham số, được chọn vì trong lượt thử nó nhận đúng nhiều lệnh nhất sau ngưỡng (70,87%), với backbone PyTorch CPU p50 0,98 ms. Đây là phép đo clip rời trên một máy, không phải benchmark browser hoặc kết quả microphone production.
 
-[Model ONNX](public/voicesnake.onnx) nhận float32 waveform mono 16 kHz `[B, 16000]`, trả về 6 logits `[B, 6]`: `up`, `right`, `left`, `down`, `unknown`, `background`. Frontend STFT được đóng gói trong model. Browser dùng ONNX Runtime Web WASM, ngưỡng confidence mặc định 0,90 và hai lần dự đoán liên tiếp; `unknown` và `background` không phát lệnh. Ngưỡng này là lựa chọn thử nghiệm và cần kiểm tra lại với microphone thật; xem [so sánh ngưỡng](training/threshold_report.md).
+[Model ONNX](public/voicesnake.onnx) nhận float32 waveform mono 16 kHz `[B, 16000]`, trả về 6 logits `[B, 6]`: `up`, `right`, `left`, `down`, `unknown`, `background`. Frontend STFT được đóng gói trong model. Browser dùng ONNX Runtime Web WASM, ngưỡng confidence mặc định 0,70 và một lần dự đoán; `unknown` và `background` không phát lệnh. Ngưỡng này là lựa chọn thử nghiệm và cần kiểm tra lại với microphone thật; xem [so sánh ngưỡng](training/threshold_report.md).
 
 ONNX Runtime CPU đã đối chiếu với PyTorch trên 128 clip: sai lệch logits tối đa 0,000109, không khác nhãn hoặc quyết định qua ngưỡng. Không suy ra tốc độ hay độ chính xác micro trên browser từ phép kiểm tra đó.
 
@@ -42,7 +42,7 @@ ONNX Runtime CPU đã đối chiếu với PyTorch trên 128 clip: sai lệch lo
 | 0,919165 | 73,1% | 5,00% | 70,9% | 0,94% |
 | 0,95 | 65,9% | 2,19% | 65,2% | 0,31% |
 
-Chọn **0,90** làm mặc định thử nghiệm để tăng khả năng nhận lệnh so với 0,919165, đổi lại nhận nhầm nhiều hơn. Kết quả chưa phản ánh microphone thật; test cũng đã được dùng trong quá trình chọn model. Xem [báo cáo chi tiết](training/threshold_report.md) để biết số mẫu và phép phát lại cửa sổ trượt.
+Mặc định hiện tại là **0,70** theo lựa chọn chơi thử; ngưỡng thấp hơn có thể tăng nhận nhầm. Kết quả chưa phản ánh microphone thật; test cũng đã được dùng trong quá trình chọn model. Xem [báo cáo chi tiết](training/threshold_report.md) để biết số mẫu và phép phát lại cửa sổ trượt.
 
 ## Dữ liệu và đầu vào chung
 

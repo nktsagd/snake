@@ -7,7 +7,7 @@ import { Detector, LABELS, probabilities } from "../lib/detector";
 type VoiceStatus = "loading" | "ready" | "listening" | "error";
 const directions: Direction[] = ["up", "left", "down", "right"];
 const arrows: Record<Direction, string> = { up: "↑", right: "→", down: "↓", left: "←" };
-const defaults = { speed: 4, threshold: .90, energy: .004, confirmations: 2, cooldown: 350 };
+const defaults = { speed: 3, threshold: .70, energy: .004, confirmations: 1, cooldown: 350 };
 
 export default function Home() {
   const [game, setGame] = useState(initialGame);
