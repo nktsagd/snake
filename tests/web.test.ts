@@ -35,6 +35,12 @@ describe("voice decisions", () => {
     expect(p.reduce((a, b) => a + b, 0)).toBeCloseTo(1);
     expect(p.indexOf(Math.max(...p))).toBe(1);
   });
+  test("uses the configured cooldown between different commands", () => {
+    const d = new Detector(.5, 1, 800);
+    expect(d.update("up", .9, true, 1000)).toBe("up");
+    expect(d.update("left", .9, true, 1500)).toBeNull();
+    expect(d.update("left", .9, true, 1800)).toBe("left");
+  });
 });
 test("ONNX WASM loads the shipped model and produces six finite logits", async () => {
   ort.env.wasm.numThreads = 1;

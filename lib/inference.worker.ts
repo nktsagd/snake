@@ -11,9 +11,9 @@ self.onmessage = async (event: MessageEvent) => {
     } else if (event.data.type === "infer" && session) {
       const start = performance.now();
       const result = await session.run({ waveform: new ort.Tensor("float32", event.data.samples, [1, 16000]) });
-      self.postMessage({ type: "result", logits: Array.from(result.logits.data as Float32Array), ms: performance.now() - start });
+      self.postMessage({ type: "result", id: event.data.id, logits: Array.from(result.logits.data as Float32Array), ms: performance.now() - start });
     }
   } catch (error) {
-    self.postMessage({ type: "error", message: error instanceof Error ? error.message : String(error) });
+    self.postMessage({ type: "error", id: event.data.id, message: error instanceof Error ? error.message : String(error) });
   }
 };
