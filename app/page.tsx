@@ -149,7 +149,7 @@ export default function Home() {
         <label>Khoảng nghỉ giữa lệnh <output>{settings.cooldown} ms</output><input type="range" min="0" max="1000" step="50" value={settings.cooldown} onChange={e => setSettings(s => ({ ...s, cooldown: Number(e.target.value) }))}/></label>
         <p>Giảm ngưỡng giúp dễ nhận lệnh hơn nhưng có thể tăng nhận nhầm.</p>
       </div>
-      <div className="touch-controls" aria-label="Điều khiển cảm ứng">{directions.map(d => <button key={d} aria-label={d} onClick={() => steer(d)}>{arrows[d]}</button>)}</div></aside></section>
+      </aside></section>
     <section className="commands-card instructions"><div className="card-top"><span className="section-label">LỆNH GIỌNG NÓI</span></div><div className="command-grid">{directions.map(d => <div className="command" key={d}><span>{arrows[d]}</span><div><b>{d.toUpperCase()}</b><small>{({ up: "LÊN", left: "TRÁI", down: "XUỐNG", right: "PHẢI" })[d]}</small></div></div>)}</div></section>
     <footer>Âm thanh được xử lý trên thiết bị.</footer>
   </main>;

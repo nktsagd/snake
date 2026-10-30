@@ -11,7 +11,7 @@ bun install
 bun run dev
 ```
 
-Mở địa chỉ localhost được in ra, chọn **Bắt đầu chơi**, sau đó chọn **Bật microphone** và cấp quyền. Nói một trong bốn từ tiếng Anh. Có thể dùng phím mũi tên, WASD hoặc các nút cảm ứng; Space tạm dừng. Micro cần localhost hoặc HTTPS. Model và runtime được tải khi mở trang; âm thanh không được gửi đến server.
+Mở địa chỉ localhost được in ra, chọn **Bắt đầu chơi**, sau đó chọn **Bật microphone** và cấp quyền. Nói một trong bốn từ tiếng Anh. Có thể dùng phím mũi tên hoặc WASD; Space tạm dừng. Micro cần localhost hoặc HTTPS. Model và runtime được tải khi mở trang; âm thanh không được gửi đến server.
 
 Mục **Cài đặt** điều chỉnh ngay tốc độ rắn (2–10 ô/giây), confidence tối thiểu (10–99%), ngưỡng RMS (0,001–0,030), số lần xác nhận (1–4) và thời gian nghỉ giữa hai lệnh (0–1.000 ms). Mặc định lần lượt là 3 ô/giây, 70%, 0,004, 1 và 350 ms; **Đặt lại** khôi phục các giá trị này. Giảm ngưỡng hoặc xác nhận có thể giảm bỏ sót nhưng tăng nhận nhầm. Cài đặt chỉ tồn tại trong phiên trang; không thay đổi trọng số hay cấu trúc model.
 
