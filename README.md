@@ -103,3 +103,18 @@ Accuracy là argmax 6 lớp trước ngưỡng. Các tỷ lệ còn lại dùng 
 
 
 Các kiến trúc khác trong bảng là **kết quả so sánh lịch sử**, không phải model chạy trong game. Một lần train và tập test hữu hạn chưa chứng minh khả năng từ chối mọi âm thanh lạ hoặc độ ổn định production.
+
+## Pipeline huấn luyện và xuất model
+
+Mã Python nằm trong `training/`: [compare.py](training/compare.py) chứa frontend, bốn kiến trúc, chia dữ liệu, train và đánh giá; [export_onnx.py](training/export_onnx.py) xuất DS-CNN vừa và đối chiếu ONNX với PyTorch. [Checkpoint DS-CNN đã chọn](training/checkpoints/dscnn_medium.pt), [kết quả bốn model](training/results.json) và [kiểm tra ONNX](training/onnx_validation.json) được lưu cùng repo.
+
+Đặt Google Speech Commands v0.02 đã giải nén trong `archive/`, tạo môi trường Python 3.9–3.12 và chạy tại thư mục gốc:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r training/requirements.txt
+.venv/bin/python training/compare.py
+.venv/bin/python training/export_onnx.py
+```
+
+`compare.py` ghi cache, checkpoint và kết quả vào `training_outputs/model_comparison/` và bỏ qua model đã có trong `results.json` ở thư mục đó. Muốn train lại từ đầu, đổi tên hoặc di chuyển thư mục output cũ trước khi chạy. `export_onnx.py` dùng checkpoint được lưu trong `training/checkpoints/`, ghi ONNX mới vào `training_outputs/model_comparison/`, không tự thay model game trong `public/`. Muốn xuất checkpoint vừa train thay vì checkpoint đã lưu, cần chủ động cập nhật checkpoint được chọn và kiểm tra lại trước khi thay model game.
