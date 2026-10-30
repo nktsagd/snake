@@ -1,94 +1,105 @@
-# VoiceSnake desktop
+# VoiceSnake
 
-Game Snake điều khiển bằng bốn từ tiếng Anh **up, right, left, down**, hoặc bàn phím. Model GRU được train từ đầu và đóng gói sẵn cùng chương trình. Chơi trên CPU, xử lý microphone tại máy; không cần train lại hoặc tải dataset để chơi.
+Game Snake trên web, điều khiển bằng bốn từ **up, right, left, down** hoặc bằng bàn phím. Next.js chạy với Bun; model DS-CNN ONNX và âm thanh microphone được xử lý ngay trong trình duyệt.
 
-Một thí nghiệm riêng đã so sánh bốn model và chọn DS-CNN sáu lớp để xuất ONNX: xem [kiến trúc và kết quả](experiments/model_comparison/README.md). Game desktop hiện vẫn dùng GRU bốn lớp; DS-CNN chưa được tích hợp vào game hay kiểm tra trên browser.
+## Chạy game
 
-## Cài và chạy trên máy mới
-
-Giải nén dự án vào thư mục bạn có quyền ghi, mở Terminal/PowerShell trong thư mục đó. Cần **Python 3.9–3.12, bản 64 bit**; khuyến nghị Python 3.11. Bộ wheel macOS hiện tại dành cho Apple Silicon; Intel macOS không được hỗ trợ trong bản này. Trên Windows, chọn “Add Python to PATH” khi cài Python.
-
-**Windows:**
-
-```powershell
-py -3.11 scripts/bootstrap.py
-py -3.11 run_game.py
-```
-
-**macOS / Linux:**
+Cài [Bun](https://bun.sh/), sau đó tại thư mục dự án:
 
 ```bash
-python3 scripts/bootstrap.py
-python3 run_game.py
+bun install
+bun run dev
 ```
 
-Các dependency runtime trực tiếp và gián tiếp được cố định trong `requirements.txt` / `constraints-runtime.txt`. Script đầu tạo `.venv` và cài dependency vào đó; cần Internet lần đầu. Script sau dùng Python trong `.venv`. Khi cài xong có thể chơi offline. Không copy `.venv` từ máy khác và không dùng `sudo pip`.
-
-Trên Ubuntu/Debian, cài thư viện audio hệ thống nếu thiếu:
+Mở địa chỉ localhost được in ra, chọn **Bắt đầu chơi**, sau đó chọn **Bật microphone** và cấp quyền. Nói một trong bốn từ tiếng Anh. Có thể dùng phím mũi tên, WASD hoặc các nút cảm ứng; Space tạm dừng. Micro cần localhost hoặc HTTPS. Model và runtime được tải khi mở trang; âm thanh không được gửi đến server.
 
 ```bash
-sudo apt install libportaudio2 libsndfile1
+bun test       # kiểm tra luật game, lọc lệnh và ONNX WASM
+bun run build  # build production
+bun run start  # chạy build
 ```
 
-Cho phép ứng dụng Terminal/Python truy cập microphone trong cài đặt quyền riêng tư của hệ điều hành. macOS: **System Settings → Privacy & Security → Microphone**. Windows: **Settings → Privacy & security → Microphone**. Cần phiên desktop có màn hình và thiết bị audio để chơi bằng giọng nói.
+## Model được chọn
 
-## Kiểm tra môi trường
+**DS-CNN vừa**, 21.830 tham số, được chọn vì trong lượt thử nó nhận đúng nhiều lệnh nhất sau ngưỡng (70,87%), với backbone PyTorch CPU p50 0,98 ms. Đây là phép đo clip rời trên một máy, không phải benchmark browser hoặc kết quả microphone production.
 
-Dùng Python trong môi trường vừa tạo:
+[Model ONNX](public/voicesnake.onnx) nhận float32 waveform mono 16 kHz `[B, 16000]`, trả về 6 logits `[B, 6]`: `up`, `right`, `left`, `down`, `unknown`, `background`. Frontend STFT được đóng gói trong model. Browser dùng ONNX Runtime Web WASM, ngưỡng confidence 0,919165 và hai lần dự đoán liên tiếp; `unknown` và `background` không phát lệnh. Ngưỡng được chọn trên validation clip và cần kiểm tra lại với microphone thật.
 
-```bash
-# macOS / Linux
-.venv/bin/python -m voicesnake --doctor
-.venv/bin/python -m voicesnake --list-devices
-.venv/bin/python -m voicesnake --keyboard-only
+ONNX Runtime CPU đã đối chiếu với PyTorch trên 128 clip: sai lệch logits tối đa 0,000109, không khác nhãn hoặc quyết định qua ngưỡng. Không suy ra tốc độ hay độ chính xác micro trên browser từ phép kiểm tra đó.
+
+## Dữ liệu và đầu vào chung
+
+Speech Commands v0.02: audio mono 16 kHz, mỗi mẫu 16.000 điểm. Frontend dùng STFT (FFT/window 400, hop 160), gộp 200 bin tần số thành 100 bin, lấy log và chuẩn hóa theo từng mẫu. Kết quả là tensor **`[B, 101, 100]`**. Sáu logits theo thứ tự: `up`, `right`, `left`, `down`, `unknown`, `background`.
+
+Split theo speaker bằng SHA-1, khoảng 70/15/15; không dùng split chính thức. `cat`, `dog` là unknown chưa thấy trong validation; `bed`, `bird` là unknown chưa thấy trong test. Tiếng nền được chia theo file trước khi cắt cửa sổ. Test có 2.503 clip lệnh, 4.320 unknown đã thấy, 320 unknown chưa thấy và 61 cửa sổ nền từ một file.
+
+## Bốn kiến trúc
+
+### GRU-64 — 80.582 tham số
+
+```mermaid
+flowchart LR
+    A["Log-spectrogram<br/>B × 101 × 100"] --> B["BiGRU<br/>64 mỗi chiều"]
+    B --> C["Mean + max pooling<br/>B × 256"]
+    C --> D["Linear 64 → ReLU → Dropout 0.25"]
+    D --> E["Linear → 6 logits"]
 ```
 
-```powershell
-# Windows
-.venv\Scripts\python.exe -m voicesnake --doctor
-.venv\Scripts\python.exe -m voicesnake --list-devices
-.venv\Scripts\python.exe -m voicesnake --keyboard-only
+### GRU-128 — 209.862 tham số
+
+```mermaid
+flowchart LR
+    A["Log-spectrogram<br/>B × 101 × 100"] --> B["BiGRU<br/>128 mỗi chiều"]
+    B --> C["Mean + max pooling<br/>B × 512"]
+    C --> D["Linear 64 → ReLU → Dropout 0.25"]
+    D --> E["Linear → 6 logits"]
 ```
 
-Sau khi kích hoạt `.venv`, cũng có thể chạy `voicesnake` hoặc `python -m voicesnake`. Chọn microphone cụ thể bằng `--device 0`; dùng chỉ số in bởi `--list-devices`.
+### DS-CNN nhỏ — 5.382 tham số
 
-## Cách chơi
+```mermaid
+flowchart LR
+    A["Log-spectrogram<br/>B × 101 × 100"] --> B["Conv 5×5, 32 kênh<br/>stride 4 → BN → ReLU → max pool"]
+    B --> C["3 residual block<br/>depthwise 3×3 → pointwise 1×1"]
+    C --> D["Global average pool → Dropout 0.25"]
+    D --> E["Linear → 6 logits"]
+```
 
-| Điều khiển | Chức năng |
+### DS-CNN vừa — 21.830 tham số, được chọn
+
+```mermaid
+flowchart LR
+    A["Log-spectrogram<br/>B × 101 × 100"] --> B["Conv 5×5, 64 kênh<br/>stride 4 → BN → ReLU → max pool"]
+    B --> C["4 residual block<br/>depthwise 3×3 → pointwise 1×1"]
+    C --> D["Global average pool → Dropout 0.25"]
+    D --> E["Linear → 6 logits"]
+```
+
+Mỗi residual block gồm depthwise conv → batch norm → ReLU → pointwise conv → batch norm, cộng đầu vào rồi ReLU.
+
+## Thông số train
+
+| Thông số | Giá trị |
 |---|---|
-| Nói up / right / left / down | Chuyển sang hướng tuyệt đối |
-| Mũi tên / WASD | Chuyển hướng bằng bàn phím |
-| Space | Pause/resume |
-| R | Chơi lại |
-| V | Bật/tắt voice |
-| SETTINGS / Tab | Mở bảng tham số |
-| + / − | Chỉnh tốc độ |
-| Esc | Đóng settings; nếu đang đóng thì thoát |
+| Seed / batch | 42 / 64 |
+| Optimizer | AdamW, learning rate 0,001, weight decay 0,0001 |
+| Loss | Cross entropy |
+| Lịch train | Tối đa 20 epoch; early stopping patience 5; chọn validation loss thấp nhất |
+| Scheduler | ReduceLROnPlateau, factor 0,5, patience 2 |
+| Mẫu mỗi epoch | 12.000, lấy có hoàn lại và cân bằng theo 6 lớp |
+| Augmentation | Che 6 frame thời gian và 5 bin tần số trên feature train |
+| Runtime | PyTorch 2.8.0, CPU, 4 luồng |
 
-Rắn xuyên tường sang mép đối diện, va vào thân thì thua. Game chặn quay ngược 180°: đang đi right thì cần up/down trước khi left.
+## Kết quả test
 
-Trong SETTINGS, **Threshold, Energy, Confirmations** được cập nhật cho vòng xử lý audio kế tiếp; **Speed** cập nhật lịch di chuyển. Không cần restart. Thay đổi chỉ có hiệu lực trong phiên hiện tại. Giảm threshold/confirmations để dễ nhận lệnh hơn; giảm energy nếu giọng nhỏ. Độ nhạy cao hơn có thể tăng nhận nhầm.
+| Model | Epoch tốt nhất | Accuracy 6 lớp | Lệnh đúng được chấp nhận | Unknown đã thấy nhận nhầm | Unknown chưa thấy nhận nhầm | CPU p50 / p95 |
+|---|---:|---:|---:|---:|---:|---:|
+| GRU-64 | 12 | 87,16% | 54,53% | 0,21% | 0,63% | 1,58 / 1,71 ms |
+| GRU-128 | 11 | 89,38% | 67,04% | 0,49% | 1,56% | 2,55 / 2,67 ms |
+| DS-CNN nhỏ | 14 | 85,45% | 58,97% | 1,25% | 0,31% | 0,60 / 0,69 ms |
+| **DS-CNN vừa** | **10** | **89,03%** | **70,87%** | **1,18%** | **0,94%** | **0,98 / 1,12 ms** |
 
-`PREDICTION` và phần trăm là dự đoán thô, chưa phải lệnh đã được chấp nhận. `DETECTOR` giải thích bộ lọc; `LAST COMMAND` cho biết QUEUED / APPLIED / ALREADY / BLOCKED. Confidence cao không đảm bảo rắn sẽ rẽ nếu hướng bị chặn hoặc detector đang chờ xác nhận.
+Accuracy là argmax 6 lớp trước ngưỡng. Các tỷ lệ còn lại dùng ngưỡng riêng, chọn trên validation để không quá 5% trong 320 clip unknown chưa thấy bị nhận thành lệnh. Ngưỡng của DS-CNN vừa là **0,919165**; lệnh chỉ được chấp nhận khi lớp điểm cao nhất là một trong bốn hướng và vượt ngưỡng. Thời gian chỉ đo backbone trên feature tính sẵn, không gồm frontend, micro hoặc detector; đây không phải benchmark ONNX/browser. Dữ liệu test là clip rời, không đo false activation theo giờ.
 
-Ví dụ đặt tham số khi khởi động:
 
-```bash
-python -m voicesnake --threshold 0.55 --energy 0.004 --confirmations 2 --speed 5
-```
-
-## Model và dữ liệu ghi ra
-
-Model mặc định nằm trong `voicesnake/assets/`, đi cùng nhãn và manifest checksum. Đây là GRU bốn lớp riêng của dự án, 80.452 tham số. Input model: mono 16 kHz, cửa sổ một giây; nếu microphone chỉ hỗ trợ 44,1/48 kHz thì chương trình resample liên tục về 16 kHz; frontend STFT nằm trong model TorchScript. Không cần checkpoint ngoài để chơi.
-
-Dữ liệu có thể ghi nằm ngoài thư mục cài: mặc định `~/.voicesnake` trên macOS/Linux hoặc `%LOCALAPPDATA%\VoiceSnake` trên Windows. Đặt biến môi trường `VOICESNAKE_HOME` để chọn thư mục khác. `--metrics` cho phép chỉ định đường dẫn log phiên. Không copy microphone recording cá nhân khi chia sẻ dự án.
-
-Kết quả lượt train đã lưu: **94,03% accuracy / macro-F1 0,9407 trên 637 clip test**, chia theo người nói. Inference CPU trong notebook khoảng **1,85 ms p50**, không phải độ trễ microphone đến khi rắn rẽ. Model chỉ có bốn lớp vẫn có thể gán từ khác vào hướng với confidence cao; chưa có kết quả microphone thực tế trên từng máy đích.
-
-## Train lại và chia sẻ
-
-Notebook `VoiceSnake_Train_GRU_4_Commands.ipynb` chứa code training và output lượt chạy gốc. Xem [hướng dẫn tái lập](docs/REPRODUCIBILITY.md) để phân biệt chạy lại đúng model đã đóng gói với train lại model mới.
-
-Bản chia sẻ `release/VoiceSnake-desktop.zip` chứa source và model cần thiết, không chứa môi trường `.venv`, dataset hay cache. Người nhận giải nén rồi làm theo mục cài đặt. Đây là dự án Python cần cài dependency, chưa phải ứng dụng thực thi độc lập. Windows/Linux chưa được xác nhận chạy thực tế trong phiên phát triển này.
-
-Dữ liệu training lấy từ TensorFlow **mini Speech Commands**, một phần của Speech Commands Dataset. Thông tin nguồn và phạm vi xác minh giấy phép được ghi trong tài liệu tái lập.
+Các kiến trúc khác trong bảng là **kết quả so sánh lịch sử**, không phải model chạy trong game. Một lần train và tập test hữu hạn chưa chứng minh khả năng từ chối mọi âm thanh lạ hoặc độ ổn định production.
