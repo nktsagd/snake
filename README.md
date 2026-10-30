@@ -29,6 +29,21 @@ bun run start  # chạy build
 
 ONNX Runtime CPU đã đối chiếu với PyTorch trên 128 clip: sai lệch logits tối đa 0,000109, không khác nhãn hoặc quyết định qua ngưỡng. Không suy ra tốc độ hay độ chính xác micro trên browser từ phép kiểm tra đó.
 
+## So sánh ngưỡng confidence
+
+Đo model ONNX trên clip rời. “Lệnh đúng” là tỷ lệ lệnh được nhận đúng; “từ lạ nhận nhầm” là tỷ lệ từ chưa thấy khi train bị nhận thành lệnh.
+
+| Ngưỡng | Validation: lệnh đúng | Validation: từ lạ nhận nhầm | Test: lệnh đúng | Test: từ lạ nhận nhầm |
+|---:|---:|---:|---:|---:|
+| 0,70 | 86,0% | 21,56% | 83,7% | 8,44% |
+| 0,80 | 82,6% | 13,75% | 80,0% | 4,38% |
+| 0,85 | 80,0% | 11,88% | 77,7% | 3,75% |
+| **0,90** | **75,5%** | **7,19%** | **73,4%** | **1,88%** |
+| 0,919165 | 73,1% | 5,00% | 70,9% | 0,94% |
+| 0,95 | 65,9% | 2,19% | 65,2% | 0,31% |
+
+Chọn **0,90** làm mặc định thử nghiệm để tăng khả năng nhận lệnh so với 0,919165, đổi lại nhận nhầm nhiều hơn. Kết quả chưa phản ánh microphone thật; test cũng đã được dùng trong quá trình chọn model. Xem [báo cáo chi tiết](training/threshold_report.md) để biết số mẫu và phép phát lại cửa sổ trượt.
+
 ## Dữ liệu và đầu vào chung
 
 Speech Commands v0.02: audio mono 16 kHz, mỗi mẫu 16.000 điểm. Frontend dùng STFT (FFT/window 400, hop 160), gộp 200 bin tần số thành 100 bin, lấy log và chuẩn hóa theo từng mẫu. Kết quả là tensor **`[B, 101, 100]`**. Sáu logits theo thứ tự: `up`, `right`, `left`, `down`, `unknown`, `background`.
@@ -101,7 +116,7 @@ Mỗi residual block gồm depthwise conv → batch norm → ReLU → pointwise 
 | DS-CNN nhỏ | 14 | 85,45% | 58,97% | 1,25% | 0,31% | 0,60 / 0,69 ms |
 | **DS-CNN vừa** | **10** | **89,03%** | **70,87%** | **1,18%** | **0,94%** | **0,98 / 1,12 ms** |
 
-Accuracy là argmax 6 lớp trước ngưỡng. Các tỷ lệ còn lại dùng ngưỡng riêng, chọn trên validation để không quá 5% trong 320 clip unknown chưa thấy bị nhận thành lệnh. Ngưỡng của DS-CNN vừa là **0,919165**; lệnh chỉ được chấp nhận khi lớp điểm cao nhất là một trong bốn hướng và vượt ngưỡng. Thời gian chỉ đo backbone trên feature tính sẵn, không gồm frontend, micro hoặc detector; đây không phải benchmark ONNX/browser. Dữ liệu test là clip rời, không đo false activation theo giờ.
+Accuracy là argmax 6 lớp trước ngưỡng. Các tỷ lệ còn lại dùng ngưỡng riêng, chọn trên validation để không quá 5% trong 320 clip unknown chưa thấy bị nhận thành lệnh. Trong phép so sánh model ban đầu, ngưỡng của DS-CNN vừa là **0,919165**. Thời gian chỉ đo backbone trên feature tính sẵn, không gồm frontend, micro hoặc detector; đây không phải benchmark ONNX/browser. Dữ liệu test là clip rời, không đo false activation theo giờ.
 
 
 Các kiến trúc khác trong bảng là **kết quả so sánh lịch sử**, không phải model chạy trong game. Một lần train và tập test hữu hạn chưa chứng minh khả năng từ chối mọi âm thanh lạ hoặc độ ổn định production.
