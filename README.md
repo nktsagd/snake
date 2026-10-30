@@ -2,6 +2,8 @@
 
 Game Snake điều khiển bằng bốn từ tiếng Anh **up, right, left, down**, hoặc bàn phím. Model GRU được train từ đầu và đóng gói sẵn cùng chương trình. Chơi trên CPU, xử lý microphone tại máy; không cần train lại hoặc tải dataset để chơi.
 
+Một thí nghiệm riêng đã so sánh bốn model và chọn DS-CNN sáu lớp để xuất ONNX: xem [kiến trúc và kết quả](experiments/model_comparison/README.md). Game desktop hiện vẫn dùng GRU bốn lớp; DS-CNN chưa được tích hợp vào game hay kiểm tra trên browser.
+
 ## Cài và chạy trên máy mới
 
 Giải nén dự án vào thư mục bạn có quyền ghi, mở Terminal/PowerShell trong thư mục đó. Cần **Python 3.9–3.12, bản 64 bit**; khuyến nghị Python 3.11. Bộ wheel macOS hiện tại dành cho Apple Silicon; Intel macOS không được hỗ trợ trong bản này. Trên Windows, chọn “Add Python to PATH” khi cài Python.
