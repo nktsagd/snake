@@ -179,6 +179,7 @@ export default function Home() {
         {game.over && <div className="board-overlay"><b>{game.won ? "Chiến thắng" : "Kết thúc"}</b><p>Điểm: {game.score}</p><button className="primary" onClick={restart}>Chơi lại</button></div>}
       </div></div><div className="board-footer"><span><b>↗</b> Rắn đi xuyên tường · Space để tạm dừng</span><button className="text-button" onClick={() => game.over ? restart() : setPlaying(p => !p)}>{game.over ? "↻ Chơi lại" : playing ? "Ⅱ Tạm dừng" : "▶ Tiếp tục"}</button></div></div>
       <aside className="side"><div className="commands-card diagnostics-card"><div className="diagnostic"><span>MODEL NGHE ĐƯỢC</span><b>{last.toUpperCase()} {last !== "—" && `${Math.round(confidence * 100)}%`}</b></div><div className="diagnostic"><span>TRẠNG THÁI</span><b>{decision}</b></div>{latency !== null && <div className="diagnostic"><span>INFERENCE</span><b>{latency.toFixed(0)} ms</b></div>}</div>
+<section className="commands-card instructions"><div className="card-top"><span className="section-label">LỆNH GIỌNG NÓI</span></div><div className="command-grid">{directions.map(d => <div className="command" key={d}><span>{arrows[d]}</span><div><b>{d.toUpperCase()}</b><small>{({ up: "LÊN", left: "TRÁI", down: "XUỐNG", right: "PHẢI" })[d]}</small></div></div>)}</div></section>
       <div className="settings-card"><div className="card-top"><span className="section-label">CÀI ĐẶT</span><button className="text-button" onClick={() => setSettings(defaults)}>Đặt lại</button></div>
         <label>Tốc độ rắn <output>{settings.speed} ô/giây</output><input type="range" min="2" max="10" step="1" value={settings.speed} onChange={e => setSettings(s => ({ ...s, speed: Number(e.target.value) }))}/></label>
         <label>Confidence tối thiểu <output>{Math.round(settings.threshold * 100)}%</output><input type="range" min="0.1" max="0.99" step="0.01" value={settings.threshold} onChange={e => setSettings(s => ({ ...s, threshold: Number(e.target.value) }))}/></label>
@@ -188,7 +189,6 @@ export default function Home() {
         <p>Giảm ngưỡng giúp dễ nhận lệnh hơn nhưng có thể tăng nhận nhầm.</p>
       </div>
       </aside></section>
-    <section className="commands-card instructions"><div className="card-top"><span className="section-label">LỆNH GIỌNG NÓI</span></div><div className="command-grid">{directions.map(d => <div className="command" key={d}><span>{arrows[d]}</span><div><b>{d.toUpperCase()}</b><small>{({ up: "LÊN", left: "TRÁI", down: "XUỐNG", right: "PHẢI" })[d]}</small></div></div>)}</div></section>
     <footer>Âm thanh được xử lý trên thiết bị.</footer>
   </main>;
 }

@@ -31,3 +31,24 @@
 @keyframes segment-in{from{filter:brightness(1.17);scale:.87}to{filter:brightness(1);scale:1}}@keyframes food-float{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-60%) scale(1.08)}}
 @media(max-width:500px){.board-card{padding:15px}.board-wrap{padding:9px 9px 12px}.arena-top{font-size:7px;height:22px}.scoreboard div{min-width:60px;padding:8px}.board-header h2{font-size:21px}.arena-label{font-size:8px}.snake.head i{box-shadow:0 0 0 1px #eaffdb}}
 @media(prefers-reduced-motion:reduce){.snake,.food{animation:none}.board-overlay .primary{transition:none}}
+
+/* Keep the square arena within the available viewport height. */
+.workspace{grid-template-columns:minmax(0, min(calc(100dvh - 180px), 100%)) minmax(260px, 320px);justify-content:center}
+.board-card{min-width:0}
+.instructions{margin:0;padding:16px 20px}
+.instructions .command-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0 0}
+.instructions .command{padding:7px 9px;gap:8px}
+.instructions .command>span{font-size:16px}
+@media(max-width:800px){.workspace{grid-template-columns:minmax(0,1fr);max-width:calc(100dvh - 180px);margin-inline:auto}.side{grid-template-columns:1fr}.board-card{width:100%}}
+@media(max-width:500px){.workspace{max-width:none}.board-card{width:min(100%,max(260px,calc(100dvh - 165px)));justify-self:center}}
+
+/* Give the arena more of the viewport while keeping its grid square. */
+@media(min-width:801px){
+  .topbar{min-height:60px;margin-bottom:10px}
+  .workspace{grid-template-columns:minmax(0,min(calc(100dvh - 105px),100%)) minmax(260px,320px)}
+  .board-card{padding:14px}
+  .board-wrap{margin-top:10px;padding:9px 9px 12px}
+  .arena-top{height:20px}
+  .board-footer{margin-top:12px}
+  .scoreboard div{padding:7px 12px}
+}
