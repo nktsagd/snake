@@ -7,7 +7,7 @@ export function probabilities(logits: Float32Array): number[] {
 }
 export class Detector {
   private candidate = ""; private count = 0; private last = ""; private quietSince: number | null = null; private emitted = -Infinity;
-  constructor(public threshold = 0.919165, public confirmations = 2, public cooldown = 350) {}
+  constructor(public threshold = 0.90, public confirmations = 2, public cooldown = 350) {}
   update(label: string, confidence: number, active: boolean, now: number): Direction | null {
     if (!active) {
       this.candidate = ""; this.count = 0; this.quietSince ??= now;
