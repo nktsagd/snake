@@ -28,6 +28,8 @@ export default function Home() {
   const buffer = useRef(new Float32Array(16000));
   const filled = useRef(0); const busy = useRef(false); const enabled = useRef(false);
   const generation = useRef(0);
+  const autoMicPending = useRef(false);
+  const micOpening = useRef(false);
   const playingRef = useRef(false); const active = useRef(false); const lastVoice = useRef(0);
 
   const steer = useCallback((direction: Direction) => setGame(previous => turn(previous, direction)), []);
@@ -86,7 +88,7 @@ export default function Home() {
   }, [game.over, steer]);
 
   const stopVoice = useCallback(() => {
-    enabled.current = false; active.current = false; generation.current++; busy.current = false;
+    autoMicPending.current = false; micOpening.current = false; enabled.current = false; active.current = false; generation.current++; busy.current = false;
     detector.current = new Detector(settingsRef.current.threshold, settingsRef.current.confirmations, settingsRef.current.cooldown);
     const current = audio.current; audio.current = null;
     if (current) { current.worklet.disconnect(); current.source.disconnect(); current.stream.getTracks().forEach(t => t.stop()); void current.context.close(); }
@@ -96,18 +98,22 @@ export default function Home() {
   const startVoice = async () => {
     if (voice === "listening") { stopVoice(); return; }
     if (voice !== "ready") return;
+    const requestGeneration = ++generation.current;
+    micOpening.current = true;
     let stream: MediaStream | null = null; let context: AudioContext | null = null;
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone cần HTTPS hoặc localhost và trình duyệt hỗ trợ.");
       setVoice("loading");
       setDetail("Đang chờ quyền microphone…");
       stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      if (requestGeneration !== generation.current) { stream.getTracks().forEach(t => t.stop()); return; }
       context = new AudioContext(); await context.audioWorklet.addModule("/audio-worklet.js");
+      if (requestGeneration !== generation.current) { stream.getTracks().forEach(t => t.stop()); await context.close(); return; }
       const source = context.createMediaStreamSource(stream); const worklet = new AudioWorkletNode(context, "capture-16k");
       const mute = context.createGain(); mute.gain.value = 0;
       source.connect(worklet); worklet.connect(mute); mute.connect(context.destination);
       audio.current = { context, stream, source, worklet }; enabled.current = true;
-      generation.current++; busy.current = false;
+      busy.current = false;
       detector.current = new Detector(settingsRef.current.threshold, settingsRef.current.confirmations, settingsRef.current.cooldown);
       lastVoice.current = 0;
       worklet.port.onmessage = event => {
@@ -123,23 +129,55 @@ export default function Home() {
           busy.current = true; const copy = buffer.current.slice(); worker.current.postMessage({ type: "infer", id: generation.current, samples: copy }, [copy.buffer]);
         }
       };
-      await context.resume(); setVoice("listening"); setDetail("Đang nghe.");
+      await context.resume();
+      if (requestGeneration !== generation.current) return;
+      micOpening.current = false; setVoice("listening"); setDetail("Đang nghe.");
     } catch (error) {
       stream?.getTracks().forEach(t => t.stop()); if (context) void context.close(); enabled.current = false;
-      setVoice("ready"); setDetail(`Không mở được micro: ${error instanceof Error ? error.message : String(error)}`);
+      if (requestGeneration !== generation.current) return;
+      micOpening.current = false; setVoice("ready"); setDetail(`Không mở được micro: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
+  useEffect(() => {
+    if (playing && !game.over) autoMicPending.current = true;
+  }, [playing, game.over]);
+
+  // Only resume automatically when microphone permission has already been granted.
+  useEffect(() => {
+    if (!playing || game.over) {
+      if (enabled.current || audio.current || autoMicPending.current || micOpening.current) stopVoice();
+      return;
+    }
+    let cancelled = false;
+    const resumeMic = async () => {
+      if (voice !== "ready" || !autoMicPending.current) return;
+      try {
+        const permission = await navigator.permissions?.query({ name: "microphone" as PermissionName });
+        if (!cancelled && autoMicPending.current && permission?.state === "granted") {
+          autoMicPending.current = false;
+          void startVoice();
+        } else if (!cancelled) autoMicPending.current = false;
+      } catch {
+        if (!cancelled) autoMicPending.current = false;
+      }
+    };
+    void resumeMic();
+    return () => { cancelled = true; };
+  // Voice changes allow a game started while the model loads to resume the mic.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, game.over, voice === "ready", stopVoice]);
+
   const restart = () => { setGame(initialGame()); setPlaying(true); };
   const statusText = voice === "listening" ? "ĐANG LẮNG NGHE" : voice === "loading" ? "ĐANG TẢI MODEL" : voice === "error" ? "CÓ LỖI" : "MIC ĐANG TẮT";
   return <main className="page">
     <header className="topbar"><a href="#" className="brand"><span className="brand-mark">✳</span> voice<span>snake</span></a><div className="mic-top"><div className="mic-info"><div className="status"><span className={`status-dot ${voice === "listening" ? "active" : ""}`}/>{statusText}<div className="meter"><i style={{ width: `${level * 100}%` }}/></div></div><div className="voice-detail" aria-live="polite">{detail}</div></div><button className={`mic-button ${voice === "listening" ? "on" : ""}`} onClick={startVoice} disabled={voice === "loading" || voice === "error"}>{voice === "listening" ? "Tắt micro" : "Bật micro"}</button></div></header>
-    <section className="workspace"><div className="board-card"><div className="board-header"><div><h2>Bàn chơi</h2></div><div className="scoreboard"><div><small>ĐIỂM</small><b>{String(game.score).padStart(2, "0")}</b></div><div><small>KỶ LỤC</small><b>{String(best).padStart(2, "0")}</b></div></div></div>
-      <div className="board-wrap"><div className="board" role="group" aria-label={`Bàn chơi, điểm ${game.score}${game.over ? ", kết thúc" : ""}`}>
-        {game.snake.map((part, i) => <div key={`${part.x}-${part.y}`} className={`snake ${i === 0 ? "head " + game.direction : ""}`} style={{ left: `${part.x / SIZE * 100}%`, top: `${part.y / SIZE * 100}%`, width: `${100 / SIZE}%`, height: `${100 / SIZE}%` }}>{i === 0 && <><i/><i/></>}</div>)}
-        <div className="food" style={{ left: `${(game.food.x + .5) / SIZE * 100}%`, top: `${(game.food.y + .5) / SIZE * 100}%` }} />
-        {!playing && !game.over && <div className="board-overlay"><button className="primary" onClick={() => setPlaying(true)}>Bắt đầu</button></div>}
+    <section className="workspace"><div className="board-card"><div className="board-header"><div><span className="arena-label">✦ VOICE SNAKE ARCADE</span><h2>Sân chơi <span>✳</span></h2></div><div className="scoreboard"><div><small>ĐIỂM</small><b>{String(game.score).padStart(2, "0")}</b></div><div><small>KỶ LỤC</small><b>{String(best).padStart(2, "0")}</b></div></div></div>
+      <div className="board-wrap"><div className="arena-top"><span><i /> SẴN SÀNG CHINH PHỤC</span><span>18 × 18</span></div><div className="board" role="group" aria-label={`Bàn chơi, điểm ${game.score}${game.over ? ", kết thúc" : ""}`}>
+        {game.snake.map((part, i) => <div key={`${part.x}-${part.y}`} className={`snake ${i === 0 ? "head " + game.direction : i === game.snake.length - 1 ? "tail" : ""}`} style={{ left: `${part.x / SIZE * 100}%`, top: `${part.y / SIZE * 100}%`, width: `${100 / SIZE}%`, height: `${100 / SIZE}%` }}>{i === 0 && <><i/><i/></>}</div>)}
+        <div className="food" style={{ left: `${(game.food.x + .5) / SIZE * 100}%`, top: `${(game.food.y + .5) / SIZE * 100}%` }}><span /></div>
+        {!playing && !game.over && <div className="board-overlay"><button className="primary" onClick={() => setPlaying(true)}>▶ &nbsp; Bắt đầu chơi</button><p>Dùng phím mũi tên hoặc giọng nói để điều khiển</p></div>}
         {game.over && <div className="board-overlay"><b>{game.won ? "Chiến thắng" : "Kết thúc"}</b><p>Điểm: {game.score}</p><button className="primary" onClick={restart}>Chơi lại</button></div>}
-      </div></div><div className="board-footer"><span>Rắn đi xuyên tường.</span><button className="text-button" onClick={() => game.over ? restart() : setPlaying(p => !p)}>{game.over ? "↻ Chơi lại" : playing ? "Ⅱ Tạm dừng" : "▶ Tiếp tục"}</button></div></div>
+      </div></div><div className="board-footer"><span><b>↗</b> Rắn đi xuyên tường · Space để tạm dừng</span><button className="text-button" onClick={() => game.over ? restart() : setPlaying(p => !p)}>{game.over ? "↻ Chơi lại" : playing ? "Ⅱ Tạm dừng" : "▶ Tiếp tục"}</button></div></div>
       <aside className="side"><div className="commands-card diagnostics-card"><div className="diagnostic"><span>MODEL NGHE ĐƯỢC</span><b>{last.toUpperCase()} {last !== "—" && `${Math.round(confidence * 100)}%`}</b></div><div className="diagnostic"><span>TRẠNG THÁI</span><b>{decision}</b></div>{latency !== null && <div className="diagnostic"><span>INFERENCE</span><b>{latency.toFixed(0)} ms</b></div>}</div>
       <div className="settings-card"><div className="card-top"><span className="section-label">CÀI ĐẶT</span><button className="text-button" onClick={() => setSettings(defaults)}>Đặt lại</button></div>
         <label>Tốc độ rắn <output>{settings.speed} ô/giây</output><input type="range" min="2" max="10" step="1" value={settings.speed} onChange={e => setSettings(s => ({ ...s, speed: Number(e.target.value) }))}/></label>
