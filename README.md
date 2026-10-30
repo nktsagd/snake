@@ -125,7 +125,7 @@ Các kiến trúc khác trong bảng là **kết quả so sánh lịch sử**, k
 
 Mã Python nằm trong `training/`: [compare.py](training/compare.py) chứa frontend, bốn kiến trúc, chia dữ liệu, train và đánh giá; [export_onnx.py](training/export_onnx.py) xuất DS-CNN vừa và đối chiếu ONNX với PyTorch. [Checkpoint DS-CNN đã chọn](training/checkpoints/dscnn_medium.pt), [kết quả bốn model](training/results.json) và [kiểm tra ONNX](training/onnx_validation.json) được lưu cùng repo.
 
-Đặt Google Speech Commands v0.02 đã giải nén trong `archive/`, tạo môi trường Python 3.9–3.12 và chạy tại thư mục gốc:
+Đặt Google Speech Commands v0.02 đã giải nén trong `archive/`, tạo môi trường Python 3.10–3.12 (đã kiểm tra với 3.12) và chạy tại thư mục gốc:
 
 ```bash
 python3 -m venv .venv

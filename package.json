@@ -11,7 +11,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "next": "15.5.12",
+    "next": "15.5.28",
     "onnxruntime-web": "1.22.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"
